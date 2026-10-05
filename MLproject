@@ -1,0 +1,6 @@
+name: cardiovascular-disease-mlops
+
+conda_env: conda.yaml
+
+# MLflow Project entry points will be added with the preprocessing/training
+# implementation. Until then this file declares the project and environment.
