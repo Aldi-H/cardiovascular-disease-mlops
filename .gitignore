@@ -1,0 +1,11 @@
+# Environment variables (credentials — never commit!)
+.env
+
+# Datasets
+data/raw/*
+
+# Keep directory structure
+!data/raw/.gitkeep
+
+# Local model artifacts
+artifacts/
