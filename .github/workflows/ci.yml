@@ -1,0 +1,35 @@
+name: Preprocessing CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-preprocessing:
+    name: Test preprocessing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
+      - name: Run preprocessing tests
+        run: python -m pytest -q tests/test_preprocessing.py
