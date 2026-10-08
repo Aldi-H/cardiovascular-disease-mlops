@@ -230,7 +230,7 @@ def main() -> None:
     }
 
     mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-    mlflow.set_experiment("cardiovascular-disease-tuning")
+    mlflow.set_experiment("cardiovascular-disease-tuning-b2")
 
     for model_name, (estimator, param_grid) in model_searches.items():
         pipeline = Pipeline(
