@@ -1,0 +1,13 @@
+services:
+  cardiovascular-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cardiovascular-disease-api:local
+    env_file:
+      - .env
+    environment:
+      MODEL_URI: ${MODEL_URI:?}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

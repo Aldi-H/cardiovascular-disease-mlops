@@ -285,6 +285,9 @@ def main() -> None:
                 "test_size": TEST_SIZE,
                 "random_state": RANDOM_STATE,
             }
+            workflow_run_id = os.getenv("GITHUB_RUN_ID")
+            if workflow_run_id:
+                manual_params["github_run_id"] = workflow_run_id
 
             manual_params.update(
                 {

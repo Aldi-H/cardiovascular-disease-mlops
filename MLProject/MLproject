@@ -1,0 +1,14 @@
+name: cardiovascular-disease-mlops
+
+conda_env: conda.yaml
+
+entry_points:
+  download_data:
+    parameters:
+      output:
+        type: string
+        default: ../data/raw/cardiovascular-disease.csv
+    command: "python download_dataset.py --output {output}"
+
+  train:
+    command: "python modelling.py"

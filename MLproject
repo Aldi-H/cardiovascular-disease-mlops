@@ -2,5 +2,13 @@ name: cardiovascular-disease-mlops
 
 conda_env: conda.yaml
 
-# MLflow Project entry points will be added with the preprocessing/training
-# implementation. Until then this file declares the project and environment.
+entry_points:
+  download_data:
+    parameters:
+      output:
+        type: string
+        default: data/raw/cardiovascular-disease.csv
+    command: "python MLProject/download_dataset.py --output {output}"
+
+  train:
+    command: "python MLProject/modelling.py"
