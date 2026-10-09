@@ -10,14 +10,14 @@
 | Tahap | Fokus | Status |
 |---|---|---|
 | 0 | Struktur repo dan environment | Selesai: struktur, README, notebook awal, dan environment Python 3.12.13 terverifikasi |
-| 1 | Eksplorasi data dan preprocessing otomatis | Belum |
-| 2 | Baseline model dengan MLflow autolog | Belum |
-| 3 | Tuning, manual logging, dan pemilihan model | Belum |
-| 4 | Artifact store Backblaze B2 | Belum |
-| 5 | Model serving dengan Docker | Belum |
-| 6 | Instrumentasi Prometheus | Belum |
+| 1 | Eksplorasi data dan preprocessing otomatis | Selesai: EDA tersimpan, preprocessing stratified dan train-only transformer terverifikasi |
+| 2 | Baseline model dengan MLflow autolog | Selesai: Logistic Regression dan Random Forest tercatat di DagsHub |
+| 3 | Tuning, manual logging, dan pemilihan model | Selesai: 5-fold CV, metrik manual, model, dan artefak tercatat |
+| 4 | Artifact store Backblaze B2 | Selesai: artefak tuning baru terverifikasi di B2 |
+| 5 | Model serving dengan Docker | Selesai: `/health`, `/predict`, `/metrics` berhasil diuji dalam container |
+| 6 | Instrumentasi Prometheus | Dalam progres: metrik dasar API tersedia; target 10 metrik dan scrape config belum selesai |
 | 7 | Dashboard dan alerting Grafana | Belum |
-| 8 | CI/CD GitHub Actions | Belum |
+| 8 | CI/CD GitHub Actions | Dalam progres: workflow MLflow Project dan Docker Hub dibuat; menunggu GitHub Secrets serta verifikasi run pertama |
 | 9 | Dokumentasi dan checklist submission | Belum |
 
 Checklist akan diperbarui seiring penyelesaian tiap tahap. Persyaratan resmi Dicoding yang ditempel pengguna menjadi prioritas jika berbeda dari rancangan teknis di repo ini.
@@ -62,7 +62,12 @@ Definisi dan pengkodean kolom perlu dicocokkan kembali dengan data card sumber s
 ├── monitoring/               # Prometheus, Grafana, simulator
 ├── tests/                    # Pengujian
 ├── .github/workflows/        # Workflow GitHub Actions
-├── MLproject                 # Entry point proyek MLflow
+├── MLproject                 # Entry point MLflow di root repository
+├── MLProject/                # MLflow Project untuk workflow submission
+│   ├── MLproject
+│   ├── conda.yaml
+│   ├── download_dataset.py
+│   └── modelling.py
 ├── conda.yaml                # Environment conda Python 3.12.13
 ├── requirements.txt          # Versi dependensi Python yang dipin
 ├── .env.example              # Template variabel environment, tanpa secret
@@ -99,7 +104,7 @@ cp .env.example .env
 
 Isi nilai bertanda `<ISI_SENDIRI>` di `.env` lokal saja. File `.env` diabaikan Git. Jangan menaruh token, password, application key, atau credential di source code, notebook, README, maupun commit; untuk CI gunakan GitHub Secrets. URI DagsHub yang disiapkan adalah `https://dagshub.com/aldihimawan88/cardiovascular-disease-mlops.mlflow`; autentikasi memerlukan akun/repo yang dapat diakses.
 
-**Registry image belum dipilih.** Pilih registry yang akan digunakan sebelum Tahap 8 (contoh: Docker Hub atau Quay.io); nama registry serta credential GitHub Secrets akan didokumentasikan setelah pilihan dikonfirmasi.
+**Registry image:** Docker Hub digunakan untuk memenuhi kriteria CI/CD Dicoding. Credential Docker Hub hanya disimpan sebagai GitHub Secrets, bukan di repository.
 
 ## Rancangan evaluasi dan logging
 
