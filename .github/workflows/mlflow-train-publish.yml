@@ -101,7 +101,12 @@ jobs:
       - name: Build and push MLflow model image
         shell: bash
         run: |
-          image="${DOCKERHUB_USERNAME}/cardiovascular-disease-mlflow:${GITHUB_SHA}"
+          dockerhub_username="$(printf '%s' "$DOCKERHUB_USERNAME" | tr -d '[:space:]')"
+          if [[ -z "$dockerhub_username" ]]; then
+            echo "DOCKERHUB_USERNAME kosong setelah whitespace dibersihkan."
+            exit 1
+          fi
+          image="${dockerhub_username}/cardiovascular-disease-mlflow:${GITHUB_SHA:0:12}"
           mlflow models build-docker \
             --model-uri "$MODEL_URI" \
             --name "$image" \
@@ -111,6 +116,11 @@ jobs:
       - name: Build and push FastAPI serving image
         shell: bash
         run: |
-          image="${DOCKERHUB_USERNAME}/cardiovascular-disease-api:${GITHUB_SHA}"
+          dockerhub_username="$(printf '%s' "$DOCKERHUB_USERNAME" | tr -d '[:space:]')"
+          if [[ -z "$dockerhub_username" ]]; then
+            echo "DOCKERHUB_USERNAME kosong setelah whitespace dibersihkan."
+            exit 1
+          fi
+          image="${dockerhub_username}/cardiovascular-disease-api:${GITHUB_SHA:0:12}"
           docker build --file Dockerfile --tag "$image" .
           docker push "$image"
