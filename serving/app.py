@@ -53,6 +53,36 @@ PREDICTIONS = Counter("predictions", "Jumlah prediksi per class", ["cardio_class
 PREDICTION_CONFIDENCE = Histogram(
     "prediction_confidence", "Probabilitas prediksi kelas cardio=1"
 )
+INPUT_AGE_YEARS = Histogram(
+    "prediction_input_age_years",
+    "Umur input dalam tahun",
+    buckets=(30, 35, 40, 45, 50, 55, 60, 65),
+)
+INPUT_SYSTOLIC_MMHG = Histogram(
+    "prediction_input_systolic_mmhg",
+    "Tekanan darah sistolik input dalam mmHg",
+    buckets=(70, 90, 100, 110, 120, 130, 140, 160, 180, 200, 250),
+)
+INPUT_DIASTOLIC_MMHG = Histogram(
+    "prediction_input_diastolic_mmhg",
+    "Tekanan darah diastolik input dalam mmHg",
+    buckets=(40, 50, 60, 70, 80, 90, 100, 120, 150),
+)
+INPUT_HEIGHT_CM = Histogram(
+    "prediction_input_height_cm",
+    "Tinggi badan input dalam cm",
+    buckets=(120, 140, 150, 160, 170, 180, 200, 220),
+)
+INPUT_WEIGHT_KG = Histogram(
+    "prediction_input_weight_kg",
+    "Berat badan input dalam kg",
+    buckets=(30, 40, 50, 60, 70, 80, 100, 125, 150, 200, 250),
+)
+INPUT_BMI = Histogram(
+    "prediction_input_bmi",
+    "BMI input hasil perhitungan",
+    buckets=(10, 15, 18.5, 25, 30, 35, 40, 50, 75, 100),
+)
 REQUEST_LATENCY = Histogram(
     "http_request_duration_seconds",
     "Durasi HTTP request dalam detik",
@@ -63,6 +93,10 @@ MODEL_LOAD_SECONDS = Gauge(
 )
 IN_FLIGHT_REQUESTS = Gauge(
     "http_requests_in_flight", "Jumlah HTTP request yang sedang diproses"
+)
+APP_START_TIME = time.time()
+APP_UPTIME_SECONDS = Gauge(
+    "application_uptime_seconds", "Lama aplikasi berjalan dalam detik"
 )
 
 
@@ -157,7 +191,9 @@ async def instrument_http_requests(request: Request, call_next):
     path = request.url.path
     status_code = "500"
     start_time = time.perf_counter()
-    IN_FLIGHT_REQUESTS.inc()
+    track_in_flight = path != "/metrics"
+    if track_in_flight:
+        IN_FLIGHT_REQUESTS.inc()
 
     try:
         response = await call_next(request)
@@ -180,7 +216,8 @@ async def instrument_http_requests(request: Request, call_next):
         REQUEST_LATENCY.labels(method=request.method, path=path).observe(
             time.perf_counter() - start_time
         )
-        IN_FLIGHT_REQUESTS.dec()
+        if track_in_flight:
+            IN_FLIGHT_REQUESTS.dec()
 
 
 @app.get("/health")
@@ -210,6 +247,12 @@ def predict(payload: PredictionRequest, request: Request):
 
         PREDICTIONS.labels(cardio_class=str(prediction)).inc()
         PREDICTION_CONFIDENCE.observe(probability_cardio)
+        INPUT_AGE_YEARS.observe(features.loc[0, "age_years"])
+        INPUT_SYSTOLIC_MMHG.observe(payload.ap_hi)
+        INPUT_DIASTOLIC_MMHG.observe(payload.ap_lo)
+        INPUT_HEIGHT_CM.observe(payload.height)
+        INPUT_WEIGHT_KG.observe(payload.weight)
+        INPUT_BMI.observe(features.loc[0, "bmi"])
 
         return {
             "cardio_prediction": prediction,
@@ -227,4 +270,5 @@ def predict(payload: PredictionRequest, request: Request):
 
 @app.get("/metrics")
 def metrics():
+    APP_UPTIME_SECONDS.set(time.time() - APP_START_TIME)
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

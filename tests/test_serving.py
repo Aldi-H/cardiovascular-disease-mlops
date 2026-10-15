@@ -96,3 +96,6 @@ def test_health_predict_and_metrics_endpoints(api_client):
     assert metrics.status_code == 200
     assert "http_requests_total" in metrics.text
     assert "predictions_total" in metrics.text
+    assert "prediction_input_age_years_count" in metrics.text
+    assert "prediction_input_systolic_mmhg_count" in metrics.text
+    assert "application_uptime_seconds" in metrics.text

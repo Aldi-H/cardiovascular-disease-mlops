@@ -11,3 +11,20 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./monitoring:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - cardiovascular-api
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
