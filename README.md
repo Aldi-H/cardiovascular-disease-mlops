@@ -3,24 +3,8 @@
 > **Tujuan:** membangun sistem machine learning yang memprediksi ada/tidaknya penyakit kardiovaskular (`cardio`) dari data klinis dan gaya hidup, sebagai **alat skrining awal**. Prediksi model bukan diagnosis dan tidak menggantikan tenaga kesehatan.
 
 - GitHub: [Aldi-H/cardiovascular-disease-mlops](https://github.com/Aldi-H/cardiovascular-disease-mlops)
-- DagsHub / MLflow: [aldihimawan88/cardiovascular-disease-mlops](https://dagshub.com/aldihimawan88/cardiovascular-disease-mlops)
-
-## Progress submission
-
-| Tahap | Fokus | Status |
-|---|---|---|
-| 0 | Struktur repo dan environment | Selesai: struktur, README, notebook awal, dan environment Python 3.12.13 terverifikasi |
-| 1 | Eksplorasi data dan preprocessing otomatis | Selesai: EDA tersimpan, preprocessing stratified dan train-only transformer terverifikasi |
-| 2 | Baseline model dengan MLflow autolog | Selesai: Logistic Regression dan Random Forest tercatat di DagsHub |
-| 3 | Tuning, manual logging, dan pemilihan model | Selesai: 5-fold CV, metrik manual, model, dan artefak tercatat |
-| 4 | Artifact store Backblaze B2 | Selesai: artefak tuning baru terverifikasi di B2 |
-| 5 | Model serving dengan Docker | Selesai: `/health`, `/predict`, `/metrics` berhasil diuji dalam container |
-| 6 | Instrumentasi Prometheus | Selesai: endpoint API menyediakan metrik dan target Prometheus sudah diverifikasi |
-| 7 | Dashboard dan alerting Grafana | Dalam progres: provisioning dashboard/alerts dan traffic simulator dibuat; menunggu verifikasi lokal |
-| 8 | CI/CD GitHub Actions | Selesai: workflow MLflow Project dan publikasi image Docker Hub terverifikasi |
-| 9 | Dokumentasi dan checklist submission | Belum |
-
-Checklist akan diperbarui seiring penyelesaian tiap tahap. Persyaratan resmi Dicoding yang ditempel pengguna menjadi prioritas jika berbeda dari rancangan teknis di repo ini.
+- DagsHub / MLflow: [Eksperimen Cardiovascular Disease](https://dagshub.com/aldihimawan88/cardiovascular-disease-mlops/experiments#/)
+- Docker Hub: [cardiovascular-disease-api](https://hub.docker.com/repository/docker/kuro1905/cardiovascular-disease-api/general) dan [cardiovascular-disease-mlflow](https://hub.docker.com/repository/docker/kuro1905/cardiovascular-disease-mlflow/general).
 
 ## Sumber dan lisensi dataset
 
@@ -71,10 +55,41 @@ Definisi dan pengkodean kolom perlu dicocokkan kembali dengan data card sumber s
 ├── conda.yaml                # Environment conda Python 3.12.13
 ├── requirements.txt          # Versi dependensi Python yang dipin
 ├── .env.example              # Template variabel environment, tanpa secret
+├── Membangun_model/
+│   └── screenshots/           # Bukti screenshot Kriteria 2
+├── Monitoring dan Logging/    # Folder bukti screenshot Kriteria 4
 └── README.md
 ```
 
-Notebook awal: [`notebooks/01_eksplorasi_data.ipynb`](notebooks/01_eksplorasi_data.ipynb). Notebook template yang sudah ada [`notebooks/Cardiovascular_Disease_MSML.ipynb`](notebooks/Cardiovascular_Disease_MSML.ipynb) dipertahankan.
+Notebook eksperimen berbasis template: [`notebooks/Cardiovascular_Disease_MSML.ipynb`](notebooks/Cardiovascular_Disease_MSML.ipynb). Notebook tersebut memuat data loading, EDA, dan eksplorasi preprocessing manual.
+
+### Pemetaan ke kriteria Dicoding
+
+- **Kriteria 1 — eksperimen dan preprocessing:** notebook eksperimen ada di `notebooks/`; preprocessing otomatis ada di `src/preprocessing.py`; tesnya ada di `tests/test_preprocessing.py`. Workflow CI saat ini menguji preprocessing, tetapi belum menjalankannya untuk mengunggah dataset hasil proses sebagai artifact.
+- **Kriteria 2 — model:** baseline MLflow autolog ada di `src/train_baseline.py`; tuning dan manual logging ada di `src/train_tuning.py`. Bukti screenshot dapat dimasukkan ke `Membangun_model/screenshots/` dengan nama `screenshoot_dashboard.jpg` dan `screenshoot_artifak.jpg`.
+- **Kriteria 3 — CI:** MLflow Project ada di `MLProject/`; workflow retraining dan publikasi ada di `.github/workflows/mlflow-train-publish.yml`. Artifact workflow disimpan sebagai GitHub Actions artifact.
+- **Kriteria 4 — monitoring:** Prometheus config ada di `monitoring/prometheus.yml`; endpoint serving, inference, dan ekspor metrik Prometheus ada di `serving/app.py`; provisioning Grafana ada di `monitoring/grafana/provisioning/`. Folder screenshot tersedia di `Monitoring dan Logging/`.
+
+### Bukti screenshot
+
+Masukkan screenshot sendiri—folder di bawah sengaja disiapkan kosong. Hapus `.gitkeep` setelah menambahkan screenshot. Jangan memasukkan `.env`, password, token, atau URL webhook Discord ke screenshot.
+
+```text
+Membangun_model/
+└── screenshots/
+    ├── screenshoot_dashboard.jpg
+    └── screenshoot_artifak.jpg
+
+Monitoring dan Logging/
+├── 1.bukti_serving/
+├── 4.bukti monitoring Prometheus/
+├── 5.bukti monitoring Grafana/
+└── 6.bukti alerting Grafana/
+    ├── rules/
+    └── notifications/
+```
+
+Workflow membuat repo `kuro1905/cardiovascular-disease-mlflow` dan `kuro1905/cardiovascular-disease-api`; tag image menggunakan 12 karakter awal commit SHA. Buka tab **Tags** pada masing-masing halaman untuk melihat image yang dipublikasikan.
 
 ## Persiapan environment (WSL2 Ubuntu)
 
