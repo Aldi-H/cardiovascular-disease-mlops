@@ -15,9 +15,9 @@
 | 3 | Tuning, manual logging, dan pemilihan model | Selesai: 5-fold CV, metrik manual, model, dan artefak tercatat |
 | 4 | Artifact store Backblaze B2 | Selesai: artefak tuning baru terverifikasi di B2 |
 | 5 | Model serving dengan Docker | Selesai: `/health`, `/predict`, `/metrics` berhasil diuji dalam container |
-| 6 | Instrumentasi Prometheus | Dalam progres: metrik dasar API tersedia; target 10 metrik dan scrape config belum selesai |
-| 7 | Dashboard dan alerting Grafana | Belum |
-| 8 | CI/CD GitHub Actions | Dalam progres: workflow MLflow Project dan Docker Hub dibuat; menunggu GitHub Secrets serta verifikasi run pertama |
+| 6 | Instrumentasi Prometheus | Selesai: endpoint API menyediakan metrik dan target Prometheus sudah diverifikasi |
+| 7 | Dashboard dan alerting Grafana | Dalam progres: provisioning dashboard/alerts dan traffic simulator dibuat; menunggu verifikasi lokal |
+| 8 | CI/CD GitHub Actions | Selesai: workflow MLflow Project dan publikasi image Docker Hub terverifikasi |
 | 9 | Dokumentasi dan checklist submission | Belum |
 
 Checklist akan diperbarui seiring penyelesaian tiap tahap. Persyaratan resmi Dicoding yang ditempel pengguna menjadi prioritas jika berbeda dari rancangan teknis di repo ini.

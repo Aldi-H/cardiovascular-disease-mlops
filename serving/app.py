@@ -1,6 +1,8 @@
 import logging
 import os
 import time
+from collections import deque
+from threading import Lock
 
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
@@ -9,6 +11,7 @@ from typing import Literal
 
 import mlflow
 import mlflow.sklearn
+import numpy as np
 import pandas as pd
 
 from fastapi import FastAPI, HTTPException, Request
@@ -37,6 +40,9 @@ MODEL_FEATURES = [
     "age_years",
     "bmi",
 ]
+NUMERIC_FEATURES = ["age_years", "height", "weight", "ap_hi", "ap_lo", "bmi"]
+DRIFT_WINDOW_SIZE = 50
+MIN_DRIFT_SAMPLES = 30
 
 DECISION_THRESHOLD = 0.5
 
@@ -98,6 +104,25 @@ APP_START_TIME = time.time()
 APP_UPTIME_SECONDS = Gauge(
     "application_uptime_seconds", "Lama aplikasi berjalan dalam detik"
 )
+INPUT_FEATURE_MEAN = Gauge(
+    "input_feature_recent_mean",
+    "Rata-rata fitur numerik pada window input terbaru",
+    ["feature"],
+)
+INPUT_FEATURE_DRIFT_ZSCORE = Gauge(
+    "input_feature_drift_zscore",
+    "Z-score rata-rata fitur input terbaru terhadap data training",
+    ["feature"],
+)
+DATA_DRIFT_MAX_ZSCORE = Gauge(
+    "data_drift_max_zscore",
+    "Z-score drift maksimum di antara fitur numerik",
+)
+DATA_DRIFT_WINDOW_SAMPLES = Gauge(
+    "data_drift_window_samples", "Jumlah input pada window drift berjalan"
+)
+RECENT_NUMERIC_INPUTS = deque(maxlen=DRIFT_WINDOW_SIZE)
+DRIFT_WINDOW_LOCK = Lock()
 
 
 class PredictionRequest(BaseModel):
@@ -144,6 +169,46 @@ def build_model_features(payload: PredictionRequest) -> pd.DataFrame:
     return pd.DataFrame([row], columns=MODEL_FEATURES)
 
 
+def get_training_reference_stats(model):
+    """Extract aggregate training mean and scale from the fitted numeric scaler."""
+    try:
+        scaler = model.named_steps["preprocessor"].named_transformers_["num"]
+        mean = np.asarray(scaler.mean_, dtype=float)
+        scale = np.asarray(scaler.scale_, dtype=float)
+    except (AttributeError, KeyError) as exc:
+        raise RuntimeError(
+            "Model tidak memiliki statistik StandardScaler untuk monitoring drift."
+        ) from exc
+
+    if mean.size != len(NUMERIC_FEATURES) or scale.size != len(NUMERIC_FEATURES):
+        raise RuntimeError("Dimensi statistik scaler tidak cocok dengan fitur drift.")
+
+    return mean, np.where(scale > 0, scale, 1.0)
+
+
+def observe_feature_drift(features: pd.DataFrame, training_mean, training_scale) -> None:
+    """Update aggregate rolling metrics; individual requests are not retained."""
+    values = features.loc[0, NUMERIC_FEATURES].to_numpy(dtype=float)
+
+    with DRIFT_WINDOW_LOCK:
+        RECENT_NUMERIC_INPUTS.append(values)
+        window_size = len(RECENT_NUMERIC_INPUTS)
+        DATA_DRIFT_WINDOW_SAMPLES.set(window_size)
+        if window_size < MIN_DRIFT_SAMPLES:
+            return
+
+        rolling_mean = np.mean(np.vstack(RECENT_NUMERIC_INPUTS), axis=0)
+        z_scores = np.abs((rolling_mean - training_mean) / training_scale)
+
+        for feature, mean_value, z_score in zip(
+            NUMERIC_FEATURES, rolling_mean, z_scores
+        ):
+            INPUT_FEATURE_MEAN.labels(feature=feature).set(float(mean_value))
+            INPUT_FEATURE_DRIFT_ZSCORE.labels(feature=feature).set(float(z_score))
+
+        DATA_DRIFT_MAX_ZSCORE.set(float(np.max(z_scores)))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv(PROJECT_ROOT / ".env", override=False)
@@ -172,6 +237,14 @@ async def lifespan(app: FastAPI):
 
     start_time = time.perf_counter()
     app.state.model = mlflow.sklearn.load_model(os.environ["MODEL_URI"])
+    (
+        app.state.training_feature_mean,
+        app.state.training_feature_scale,
+    ) = get_training_reference_stats(app.state.model)
+    with DRIFT_WINDOW_LOCK:
+        RECENT_NUMERIC_INPUTS.clear()
+    DATA_DRIFT_WINDOW_SAMPLES.set(0)
+    DATA_DRIFT_MAX_ZSCORE.set(0)
     MODEL_LOAD_SECONDS.set(time.perf_counter() - start_time)
 
     logger.info("Model dimuat.")
@@ -238,6 +311,11 @@ def predict(payload: PredictionRequest, request: Request):
     try:
         features = build_model_features(payload)
         probabilities = model.predict_proba(features)[0]
+        observe_feature_drift(
+            features,
+            request.app.state.training_feature_mean,
+            request.app.state.training_feature_scale,
+        )
 
         classifier = model.named_steps.get("model", model)
         classes = list(classifier.classes_)

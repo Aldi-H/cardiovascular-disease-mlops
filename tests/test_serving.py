@@ -26,8 +26,20 @@ class DummyClassifier:
     classes_ = np.array([0, 1])
 
 
+class DummyScaler:
+    mean_ = np.zeros(6)
+    scale_ = np.ones(6)
+
+
+class DummyPreprocessor:
+    named_transformers_ = {"num": DummyScaler()}
+
+
 class DummyPipeline:
-    named_steps = {"model": DummyClassifier()}
+    named_steps = {
+        "preprocessor": DummyPreprocessor(),
+        "model": DummyClassifier(),
+    }
 
     def predict_proba(self, features):
         assert list(features.columns) == MODEL_FEATURES
@@ -99,3 +111,23 @@ def test_health_predict_and_metrics_endpoints(api_client):
     assert "prediction_input_age_years_count" in metrics.text
     assert "prediction_input_systolic_mmhg_count" in metrics.text
     assert "application_uptime_seconds" in metrics.text
+    assert "data_drift_max_zscore" in metrics.text
+
+
+def test_drift_metric_updates_after_minimum_window():
+    payload = PredictionRequest(**VALID_PAYLOAD)
+    features = build_model_features(payload)
+    training_mean = np.zeros(6)
+    training_scale = np.ones(6)
+
+    with serving_app.DRIFT_WINDOW_LOCK:
+        serving_app.RECENT_NUMERIC_INPUTS.clear()
+
+    for _ in range(serving_app.MIN_DRIFT_SAMPLES):
+        serving_app.observe_feature_drift(features, training_mean, training_scale)
+
+    assert (
+        serving_app.DATA_DRIFT_WINDOW_SAMPLES._value.get()
+        == serving_app.MIN_DRIFT_SAMPLES
+    )
+    assert serving_app.DATA_DRIFT_MAX_ZSCORE._value.get() > 2
