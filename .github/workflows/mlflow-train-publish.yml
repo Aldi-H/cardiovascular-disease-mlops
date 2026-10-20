@@ -74,6 +74,19 @@ jobs:
       - name: Download training data through the MLflow Project
         run: mlflow run ./MLProject -e download_data --env-manager=local
 
+      - name: Run automated preprocessing
+        run: >-
+          python preprocessing/automate_Aldi-Himawan.py
+          --input data/raw/cardiovascular-disease.csv
+          --output-dir data/clean
+
+      - name: Upload processed dataset to private B2
+        run: >-
+          python src/upload_preprocessed_to_b2.py
+          --input-dir data/clean
+          --run-id "$GITHUB_RUN_ID"
+          --commit-sha "$GITHUB_SHA"
+
       - name: Retrain models through the MLflow Project
         run: mlflow run ./MLProject -e train --env-manager=local
 

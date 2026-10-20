@@ -42,6 +42,9 @@ Definisi dan pengkodean kolom perlu dicocokkan kembali dengan data card sumber s
 │   └── clean/                # Hasil preprocessing lokal; diabaikan Git
 ├── notebooks/                # Notebook eksplorasi
 ├── src/                      # Preprocessing dan training
+├── preprocessing/             # Entry point automasi Kriteria 1
+│   ├── automate_Aldi-Himawan.py
+│   └── README.md
 ├── serving/                  # API inferensi
 ├── monitoring/               # Prometheus, Grafana, simulator
 ├── tests/                    # Pengujian
@@ -65,7 +68,7 @@ Notebook eksperimen berbasis template: [`notebooks/Cardiovascular_Disease_MSML.i
 
 ### Pemetaan ke kriteria Dicoding
 
-- **Kriteria 1 — eksperimen dan preprocessing:** notebook eksperimen ada di `notebooks/`; preprocessing otomatis ada di `src/preprocessing.py`; tesnya ada di `tests/test_preprocessing.py`. Workflow CI saat ini menguji preprocessing, tetapi belum menjalankannya untuk mengunggah dataset hasil proses sebagai artifact.
+- **Kriteria 1 — eksperimen dan preprocessing:** notebook eksperimen ada di `notebooks/`; entry point `preprocessing/automate_Aldi-Himawan.py` memakai implementasi kanonis `src/preprocessing.py`. Workflow retraining mengunggah hasil `data/clean/` ke B2 private di `datasets/preprocessed/runs/<run-id>-<commit>/`; `datasets/preprocessed/latest.json` menunjuk hasil terbaru.
 - **Kriteria 2 — model:** baseline MLflow autolog ada di `src/train_baseline.py`; tuning dan manual logging ada di `src/train_tuning.py`. Bukti screenshot dapat dimasukkan ke `Membangun_model/screenshots/` dengan nama `screenshoot_dashboard.jpg` dan `screenshoot_artifak.jpg`.
 - **Kriteria 3 — CI:** MLflow Project ada di `MLProject/`; workflow retraining dan publikasi ada di `.github/workflows/mlflow-train-publish.yml`. Artifact workflow disimpan sebagai GitHub Actions artifact.
 - **Kriteria 4 — monitoring:** Prometheus config ada di `monitoring/prometheus.yml`; endpoint serving, inference, dan ekspor metrik Prometheus ada di `serving/app.py`; provisioning Grafana ada di `monitoring/grafana/provisioning/`. Folder screenshot tersedia di `Monitoring dan Logging/`.
@@ -127,7 +130,7 @@ Isi nilai bertanda `<ISI_SENDIRI>` di `.env` lokal saja. File `.env` diabaikan G
 - Metrik utama: **Recall** dan **F1**; false negative dianggap lebih berisiko untuk konteks skrining. Metrik pendukung: ROC-AUC, PR-AUC, accuracy, precision, log loss, dan waktu training.
 - Preprocessing harus di-fit hanya pada fold/train yang sesuai (pipeline CV dan train split) untuk mencegah data leakage. Test set hanya untuk evaluasi akhir.
 - MLflow Tracking UI online menggunakan DagsHub. Logging manual tetap wajib selain autolog, termasuk metrik tambahan dan artefak evaluasi.
-- Artifact model/hasil eksperimen direncanakan disimpan di Backblaze B2 melalui endpoint S3-compatible; credential dibaca dari environment.
+- Artifact model/hasil eksperimen dan dataset preprocessing disimpan di Backblaze B2 melalui endpoint S3-compatible; credential dibaca dari environment. Dataset preprocessing disimpan per-run dan dirujuk oleh manifest `datasets/preprocessed/latest.json`.
 - Serving direncanakan dengan FastAPI dalam Docker, dipantau Prometheus dan Grafana.
 
 ## Keputusan data yang masih perlu dibuktikan saat Tahap 1
@@ -136,4 +139,4 @@ Nilai tekanan darah, tinggi, dan berat dapat memiliki outlier atau nilai tidak v
 
 ## Privasi dan batasan
 
-Dataset publik bukan berarti bebas digunakan untuk segala tujuan. Jangan unggah data mentah ke Git, image Docker, atau artifact store tanpa dasar izin yang sesuai. Sistem ini proyek pembelajaran, tidak divalidasi untuk pemakaian klinis, dan berpotensi bias terhadap populasi di luar distribusi dataset.
+Dataset publik bukan berarti bebas digunakan untuk segala tujuan. Jangan unggah data mentah ke Git atau image Docker tanpa dasar izin yang sesuai. Dataset mentah dan hasil preprocessing disimpan di bucket B2 private, bukan di repository GitHub. Sistem ini proyek pembelajaran, tidak divalidasi untuk pemakaian klinis, dan berpotensi bias terhadap populasi di luar distribusi dataset.
